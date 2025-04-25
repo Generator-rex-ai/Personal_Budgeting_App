@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String        @id @default(cuid())
+  name              String?
+  email             String        @unique
+  emailVerified     DateTime?
+  image             String?
+  password          String
+  twoFactorSecret   String?
+  twoFactorEnabled  Boolean       @default(false)
+  loginAttempts     Int           @default(0)
+  lockedUntil       DateTime?
+  lastLogin         DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  transactions      Transaction[]
+  budgets           Budget[]
+  activityLogs      ActivityLog[]
+  aiInsights        AIInsight[]
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  amount      Float
+  category    String
+  description String?
+  date        DateTime
+  type        String   // "income" or "expense"
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([date])
+}
+
+model Budget {
+  id          String   @id @default(cuid())
+  category    String
+  amount      Float
+  period      String   // "monthly", "yearly", etc.
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  activity  String
+  ipAddress String?
+  userAgent String?
+  timestamp DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  success   Boolean  @default(true)
+}
+
+model AIInsight {
+  id            String   @id @default(cuid())
+  query         String
+  response      String   @db.Text
+  userId        String
+  timeframe     String?
+  dataSummary   String   @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+} 
